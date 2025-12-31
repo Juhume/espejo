@@ -208,8 +208,8 @@ export function SettingsModal({ onDataChange }: SettingsModalProps) {
           {/* Privacy note */}
           <div className="rounded-lg bg-muted p-3">
             <p className="text-xs text-muted-foreground">
-              Tus datos se guardan localmente en tu navegador. Los archivos exportados están codificados y solo tú
-              puedes leerlos. El servidor nunca tiene acceso a tu contenido.
+              Tus datos se guardan localmente y se cifran antes de sincronizar. 
+              Solo tú puedes descifrarlos con tu contraseña.
             </p>
           </div>
         </div>

@@ -222,7 +222,7 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
             Sincronización cifrada
           </DialogTitle>
           <DialogDescription>
-            Tus datos se cifran en tu dispositivo. El servidor no puede leerlos.
+            Sincroniza entre dispositivos con cifrado de extremo a extremo.
           </DialogDescription>
         </DialogHeader>
         
@@ -276,7 +276,7 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
                   La sincronización no está activada.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Tus datos solo existen en este dispositivo.
+                  Actívala para acceder desde otros dispositivos.
                 </p>
               </div>
               
@@ -293,8 +293,8 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
               <div className="rounded-lg bg-muted/50 p-3 text-sm">
                 <p className="font-medium">🔐 Cifrado de extremo a extremo</p>
                 <p className="mt-1 text-muted-foreground">
-                  Tu contraseña NUNCA sale de tu dispositivo. 
-                  Solo tú puedes descifrar tus datos.
+                  Tus datos se cifran antes de salir de tu dispositivo.
+                  Ni el servidor ni nadie más puede leerlos.
                 </p>
               </div>
               
