@@ -1,0 +1,302 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { EntryEditor } from "@/components/espejo/entry-editor"
+import { PostSavePanel } from "@/components/espejo/post-save-panel"
+import { EntryList } from "@/components/espejo/entry-list"
+import { ContinuityHeatmap } from "@/components/espejo/continuity-heatmap"
+import { SettingsModal } from "@/components/espejo/settings-modal"
+import { InstallPrompt } from "@/components/espejo/install-prompt"
+import { DemoBanner } from "@/components/espejo/demo-banner"
+import { SyncModal } from "@/components/espejo/sync-modal"
+import { Logo } from "@/components/espejo/logo"
+import { Button } from "@/components/ui/button"
+import { PenLine, List, ArrowLeft, BarChart3, CalendarCheck } from "lucide-react"
+import Link from "next/link"
+import { initializeSettings, getTodayDate, type Entry, type Settings } from "@/lib/db"
+import { getAllEntries, createOrUpdateEntry, getEntryByDate } from "@/lib/entries"
+import { syncEntry, isSyncEnabled, getSyncPassword } from "@/lib/sync"
+import { toast } from "sonner"
+
+type View = "home" | "editor" | "list"
+type EditorMode = "free" | "guided" | "bad-day"
+
+export default function EspejoApp() {
+  const [view, setView] = useState<View>("home")
+  const [entries, setEntries] = useState<Entry[]>([])
+  const [currentEntry, setCurrentEntry] = useState<Entry | null>(null)
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [editorMode, setEditorMode] = useState<EditorMode>("free")
+  const [showPostSave, setShowPostSave] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Load data on mount and when refreshKey changes
+  useEffect(() => {
+    async function loadData() {
+      const [loadedSettings, loadedEntries] = await Promise.all([initializeSettings(), getAllEntries()])
+      setSettings(loadedSettings)
+      setEntries(loadedEntries)
+
+      // Check if there's an entry for today
+      const todayEntry = await getEntryByDate(getTodayDate())
+      if (todayEntry) {
+        setCurrentEntry(todayEntry)
+      } else {
+        setCurrentEntry(null)
+      }
+
+      setIsLoading(false)
+    }
+    loadData()
+  }, [refreshKey])
+
+  const handleDataChange = useCallback(() => {
+    setRefreshKey((k) => k + 1)
+  }, [])
+
+  const handleStartWriting = useCallback(async () => {
+    const todayEntry = await getEntryByDate(getTodayDate())
+    setCurrentEntry(todayEntry || null)
+    setView("editor")
+    setShowPostSave(false)
+  }, [])
+
+  const handleSaveEntry = useCallback(
+    async (content: string) => {
+      const saved = await createOrUpdateEntry({
+        content,
+        moodTags: currentEntry?.moodTags || [],
+        habits: currentEntry?.habits || {},
+        highlights: currentEntry?.highlights || {},
+      })
+      setCurrentEntry(saved)
+
+      // Refresh entries list
+      const updated = await getAllEntries()
+      setEntries(updated)
+
+      // Sync if enabled
+      if (isSyncEnabled() && getSyncPassword()) {
+        syncEntry(saved).then((synced: boolean) => {
+          if (synced) {
+            toast.success("Guardado y sincronizado ☁️", { duration: 2000 })
+          }
+        }).catch(() => {
+          // Silent fail - sync will retry next time
+        })
+      }
+
+      // Show post-save panel
+      setShowPostSave(true)
+    },
+    [currentEntry],
+  )
+
+  const handleUpdateEntry = useCallback(
+    async (updates: Partial<Entry>) => {
+      if (!currentEntry) return
+      const saved = await createOrUpdateEntry({
+        ...currentEntry,
+        ...updates,
+        content: currentEntry.content,
+      })
+      setCurrentEntry(saved)
+
+      // Refresh entries list
+      const updatedEntries = await getAllEntries()
+      setEntries(updatedEntries)
+      
+      // Sync if enabled
+      if (isSyncEnabled() && getSyncPassword()) {
+        syncEntry(saved).catch(() => {})
+      }
+      
+      toast.success("Actualizado", { duration: 2000 })
+    },
+    [currentEntry],
+  )
+
+  const handleSelectEntry = useCallback((entry: Entry) => {
+    setCurrentEntry(entry)
+    setView("editor")
+    setShowPostSave(false)
+  }, [])
+
+  const handleDayClick = useCallback(
+    async (date: string) => {
+      const entry = await getEntryByDate(date)
+      if (entry) {
+        setCurrentEntry(entry)
+        setView("editor")
+        setShowPostSave(false)
+      } else if (date === getTodayDate()) {
+        handleStartWriting()
+      }
+    },
+    [handleStartWriting],
+  )
+
+  // Calculate streak
+  const currentStreak = entries.reduce((streak, entry, index) => {
+    if (index === 0) return 1
+    const prev = entries[index - 1]
+    const dayDiff = Math.floor((new Date(prev.date).getTime() - new Date(entry.date).getTime()) / (1000 * 60 * 60 * 24))
+    return dayDiff === 1 ? streak + 1 : streak
+  }, 0)
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-svh items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Cargando...</div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="mx-auto flex min-h-svh max-w-2xl flex-col px-4 py-6">
+        {/* Header */}
+        <header className="mb-6 flex items-center justify-between">
+          {view !== "home" ? (
+            <button
+              onClick={() => setView("home")}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>Volver</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Logo size={36} />
+              <h1 className="text-2xl font-light tracking-tight">Espejo</h1>
+            </div>
+          )}
+          <div className="flex items-center gap-1">
+            <SyncModal onSyncComplete={handleDataChange} />
+            <SettingsModal onDataChange={handleDataChange} />
+          </div>
+        </header>
+
+        {/* Demo banner */}
+        {view === "home" && <DemoBanner onDataCleared={handleDataChange} />}
+
+        {/* Home View */}
+        {view === "home" && (
+          <main className="flex flex-1 flex-col gap-8">
+            {/* Empty state for new users */}
+            {entries.length === 0 ? (
+              <section className="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+                <Logo size={80} />
+                <div className="space-y-2">
+                  <h2 className="text-xl font-medium">Tu espacio de reflexión</h2>
+                  <p className="mx-auto max-w-sm text-muted-foreground">
+                    Un diario personal para escribir sin filtros. Tus pensamientos, cifrados. Tu privacidad, garantizada.
+                  </p>
+                </div>
+                <Button onClick={handleStartWriting} size="lg" className="mt-4 h-14 gap-3 px-8 text-lg">
+                  <PenLine className="h-5 w-5" />
+                  Empezar a escribir
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Sin fricción · Sin juicios · Solo tú
+                </p>
+              </section>
+            ) : (
+              <>
+                {/* Primary action */}
+                <section className="text-center">
+                  <Button onClick={handleStartWriting} size="lg" className="h-16 w-full gap-3 text-lg">
+                    <PenLine className="h-5 w-5" />
+                    {currentEntry ? "Continuar escribiendo" : "Escribir hoy"}
+                  </Button>
+                  {currentStreak > 1 && (
+                    <p className="mt-3 text-sm text-muted-foreground">{currentStreak} días seguidos escribiendo ✨</p>
+                  )}
+                </section>
+
+                {/* Continuity heatmap */}
+                <section className="space-y-3">
+                  <h2 className="text-sm font-medium text-muted-foreground">Tu año</h2>
+                  <ContinuityHeatmap entries={entries} onDayClick={handleDayClick} />
+                </section>
+
+                {/* Quick stats */}
+                <section className="grid grid-cols-3 gap-4">
+                  <div className="rounded-lg bg-card p-4 text-center">
+                    <div className="text-2xl font-medium">{entries.length}</div>
+                    <div className="text-xs text-muted-foreground">Entradas</div>
+                  </div>
+                  <div className="rounded-lg bg-card p-4 text-center">
+                    <div className="text-2xl font-medium">
+                      {entries.reduce((sum, e) => sum + e.wordCount, 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Palabras</div>
+                  </div>
+                  <div className="rounded-lg bg-card p-4 text-center">
+                    <div className="text-2xl font-medium">{currentStreak}</div>
+                    <div className="text-xs text-muted-foreground">Racha</div>
+                  </div>
+                </section>
+
+                {/* Navigation */}
+                <nav className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" onClick={() => setView("list")} className="gap-2">
+                    <List className="h-4 w-4" />
+                    Entradas
+                  </Button>
+                  <Button variant="outline" asChild className="gap-2 bg-transparent">
+                    <Link href="/patterns">
+                      <BarChart3 className="h-4 w-4" />
+                      Patrones
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild className="col-span-2 gap-2 bg-transparent">
+                    <Link href="/review">
+                      <CalendarCheck className="h-4 w-4" />
+                      Revisión semanal
+                    </Link>
+                  </Button>
+                </nav>
+              </>
+            )}
+          </main>
+        )}
+
+        {/* Editor View */}
+        {view === "editor" && (
+          <main className="flex flex-1 flex-col">
+            {showPostSave && currentEntry && settings ? (
+              <PostSavePanel
+                entry={currentEntry}
+                moodOptions={settings.moodOptions}
+                onUpdate={handleUpdateEntry}
+                onClose={() => {
+                  setShowPostSave(false)
+                  setView("home")
+                }}
+              />
+            ) : (
+              <EntryEditor
+                initialContent={currentEntry?.content || ""}
+                onSave={handleSaveEntry}
+                mode={editorMode}
+                onModeChange={setEditorMode}
+              />
+            )}
+          </main>
+        )}
+
+        {/* List View */}
+        {view === "list" && (
+          <main className="flex-1">
+            <EntryList entries={entries} onSelect={handleSelectEntry} selectedId={currentEntry?.id} />
+          </main>
+        )}
+      </div>
+
+      {/* Install prompt */}
+      <InstallPrompt />
+    </>
+  )
+}
