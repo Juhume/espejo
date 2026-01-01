@@ -198,9 +198,16 @@ export default function EspejoApp() {
                   <PenLine className="h-5 w-5" />
                   Empezar a escribir
                 </Button>
-                <p className="text-xs text-muted-foreground">
-                  Sin fricción · Sin juicios · Solo tú
-                </p>
+                
+                {/* Info note */}
+                <div className="mx-auto mt-6 max-w-sm space-y-3 rounded-lg border border-border/50 bg-muted/30 p-4 text-left text-sm">
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li>📝 Escribe lo que quieras, cuando quieras</li>
+                    <li>🔒 Tus datos nunca salen de tu dispositivo</li>
+                    <li>📊 Descubre patrones en tu día a día</li>
+                    <li>☁️ Sincroniza entre móvil y ordenador (opcional)</li>
+                  </ul>
+                </div>
               </section>
             ) : (
               <>
@@ -222,20 +229,20 @@ export default function EspejoApp() {
                 </section>
 
                 {/* Quick stats */}
-                <section className="grid grid-cols-3 gap-4">
-                  <div className="rounded-lg bg-card p-4 text-center">
-                    <div className="text-2xl font-medium">{entries.length}</div>
-                    <div className="text-xs text-muted-foreground">Entradas</div>
+                <section className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="rounded-lg bg-card p-3 text-center sm:p-4">
+                    <div className="text-xl font-medium sm:text-2xl">{entries.length}</div>
+                    <div className="text-[10px] text-muted-foreground sm:text-xs">Entradas</div>
                   </div>
-                  <div className="rounded-lg bg-card p-4 text-center">
-                    <div className="text-2xl font-medium">
+                  <div className="rounded-lg bg-card p-3 text-center sm:p-4">
+                    <div className="text-xl font-medium sm:text-2xl">
                       {entries.reduce((sum, e) => sum + e.wordCount, 0).toLocaleString()}
                     </div>
-                    <div className="text-xs text-muted-foreground">Palabras</div>
+                    <div className="text-[10px] text-muted-foreground sm:text-xs">Palabras</div>
                   </div>
-                  <div className="rounded-lg bg-card p-4 text-center">
-                    <div className="text-2xl font-medium">{currentStreak}</div>
-                    <div className="text-xs text-muted-foreground">Racha</div>
+                  <div className="rounded-lg bg-card p-3 text-center sm:p-4">
+                    <div className="text-xl font-medium sm:text-2xl">{currentStreak}</div>
+                    <div className="text-[10px] text-muted-foreground sm:text-xs">Racha</div>
                   </div>
                 </section>
 

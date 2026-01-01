@@ -64,11 +64,11 @@ export function ContinuityHeatmap({ entries, year = new Date().getFullYear(), on
   const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 overflow-x-auto">
       {/* Month labels */}
-      <div className="flex">
-        <div className="w-8" /> {/* Spacer for day labels */}
-        <div className="flex flex-1 text-xs text-muted-foreground">
+      <div className="flex min-w-[320px]">
+        <div className="w-6 flex-shrink-0" /> {/* Spacer for day labels */}
+        <div className="flex flex-1 text-[10px] text-muted-foreground sm:text-xs">
           {months.map((month, i) => (
             <div key={month} className="flex-1 text-center">
               {month}
@@ -78,9 +78,9 @@ export function ContinuityHeatmap({ entries, year = new Date().getFullYear(), on
       </div>
 
       {/* Heatmap grid */}
-      <div className="flex gap-1">
+      <div className="flex min-w-[320px] gap-0.5 sm:gap-1">
         {/* Day labels */}
-        <div className="flex w-6 flex-col justify-around text-xs text-muted-foreground">
+        <div className="flex w-5 flex-shrink-0 flex-col justify-around text-[10px] text-muted-foreground sm:w-6 sm:text-xs">
           <span>L</span>
           <span>M</span>
           <span>M</span>
@@ -91,9 +91,9 @@ export function ContinuityHeatmap({ entries, year = new Date().getFullYear(), on
         </div>
 
         {/* Grid */}
-        <div className="flex flex-1 gap-[2px]">
+        <div className="flex flex-1 gap-[1px] sm:gap-[2px]">
           {weeks.map((week, weekIndex) => (
-            <div key={weekIndex} className="flex flex-1 flex-col gap-[2px]">
+            <div key={weekIndex} className="flex flex-1 flex-col gap-[1px] sm:gap-[2px]">
               {week.map((day, dayIndex) => {
                 const dateStr = format(day, "yyyy-MM-dd")
                 const entry = entriesByDate.get(dateStr)
@@ -107,7 +107,7 @@ export function ContinuityHeatmap({ entries, year = new Date().getFullYear(), on
                     disabled={!isCurrentYear}
                     title={isCurrentYear ? format(day, "d 'de' MMMM", { locale: es }) : undefined}
                     className={cn(
-                      "aspect-square rounded-sm transition-colors",
+                      "aspect-square rounded-[2px] transition-colors sm:rounded-sm",
                       !isCurrentYear && "invisible",
                       intensity === 0 && "bg-muted/50",
                       intensity === 1 && "bg-primary/20",

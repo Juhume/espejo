@@ -72,12 +72,12 @@ export function EntryEditor({ initialContent = "", onSave, mode, onModeChange }:
   return (
     <div className="flex h-full flex-col">
       {/* Mode switcher - simplified */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 overflow-x-auto">
           <button
             onClick={() => onModeChange("free")}
             className={cn(
-              "rounded-full px-3 py-1.5 text-sm transition-all",
+              "whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-all",
               mode === "free" 
                 ? "bg-primary text-primary-foreground" 
                 : "text-muted-foreground hover:text-foreground",
@@ -88,7 +88,7 @@ export function EntryEditor({ initialContent = "", onSave, mode, onModeChange }:
           <button
             onClick={() => onModeChange("guided")}
             className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all",
+              "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-all",
               mode === "guided" 
                 ? "bg-primary text-primary-foreground" 
                 : "text-muted-foreground hover:text-foreground",
@@ -100,19 +100,19 @@ export function EntryEditor({ initialContent = "", onSave, mode, onModeChange }:
           <button
             onClick={() => onModeChange("bad-day")}
             className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all",
+              "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition-all",
               mode === "bad-day"
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             <CloudOff className="h-3 w-3" />
-            Día difícil
+            Día duro
           </button>
         </div>
         <button
           onClick={() => setShowHelp(!showHelp)}
-          className="text-muted-foreground hover:text-foreground"
+          className="flex-shrink-0 text-muted-foreground hover:text-foreground"
           title="Ayuda"
         >
           <HelpCircle className="h-4 w-4" />
@@ -124,19 +124,19 @@ export function EntryEditor({ initialContent = "", onSave, mode, onModeChange }:
         <div className="mb-4 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
           <p><strong>Libre:</strong> Escribe lo que quieras sin estructura.</p>
           <p><strong>Guiado:</strong> Usa prompts para reflexionar.</p>
-          <p><strong>Día difícil:</strong> Solo una frase, sin presión.</p>
+          <p><strong>Día duro:</strong> Solo una frase, sin presión.</p>
           <p className="mt-2 text-xs">Atajo: ⌘S para guardar</p>
         </div>
       )}
 
       {/* Guided prompts - más compacto */}
       {mode === "guided" && (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-4 grid grid-cols-2 gap-2">
           {PROMPTS.map((prompt) => (
             <button
               key={prompt.id}
               onClick={() => insertPrompt(prompt.text)}
-              className="rounded-full bg-accent/50 px-3 py-1 text-sm transition-colors hover:bg-accent"
+              className="rounded-lg bg-accent/50 px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
             >
               {prompt.emoji} {prompt.text.replace("…", "")}
             </button>

@@ -70,9 +70,9 @@ export function InstallPrompt() {
           <Smartphone className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1">
-          <h3 className="font-medium">Instalar Espejo</h3>
+          <h3 className="font-medium">Añadir a inicio</h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Añade Espejo a tu pantalla de inicio para un acceso más rápido y uso sin conexión.
+            Instala Espejo como app. Funciona sin conexión y se abre más rápido.
           </p>
           <div className="mt-3 flex gap-2">
             <Button size="sm" onClick={handleInstall} className="gap-1.5">
@@ -80,7 +80,7 @@ export function InstallPrompt() {
               Instalar
             </Button>
             <Button size="sm" variant="ghost" onClick={handleDismiss}>
-              Ahora no
+              No, gracias
             </Button>
           </div>
         </div>

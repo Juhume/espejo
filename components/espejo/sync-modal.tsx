@@ -42,7 +42,7 @@ interface SyncModalProps {
 
 export function SyncModal({ onSyncComplete }: SyncModalProps) {
   const [open, setOpen] = useState(false)
-  const [step, setStep] = useState<"status" | "setup" | "unlock">("status")
+  const [step, setStep] = useState<"status" | "choose" | "setup" | "login" | "unlock">("status")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -100,7 +100,13 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
       const result = await setupSync(email, password)
       
       if (result.success) {
-        setSuccess("¡Sincronización activada!")
+        if (result.isNew) {
+          setSuccess("¡Cuenta creada!")
+        } else {
+          setError("Ya existe una cuenta con este email. Usa 'Ya tengo cuenta'.")
+          setIsLoading(false)
+          return
+        }
         refreshStatus()
         setStep("status")
         
@@ -108,7 +114,43 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
         await sync(password)
         onSyncComplete?.()
       } else {
-        setError(result.error || "Error al configurar")
+        setError(result.error || "Error al crear cuenta")
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleLogin = async () => {
+    setError(null)
+    
+    if (!email || !password) {
+      setError("Email y contraseña son requeridos")
+      return
+    }
+    
+    setIsLoading(true)
+    
+    try {
+      const result = await setupSync(email, password)
+      
+      if (result.success) {
+        if (result.isNew) {
+          setError("No existe cuenta con este email. Usa 'Primera vez'.")
+          setIsLoading(false)
+          return
+        }
+        setSuccess("¡Conectado!")
+        refreshStatus()
+        setStep("status")
+        
+        // Sincronizar inmediatamente
+        await sync(password)
+        onSyncComplete?.()
+      } else {
+        setError(result.error || "Email o contraseña incorrectos")
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
@@ -218,11 +260,11 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Sincronización cifrada
+            <Cloud className="h-5 w-5" />
+            Sincronización
           </DialogTitle>
           <DialogDescription>
-            Sincroniza entre dispositivos con cifrado de extremo a extremo.
+            Accede a tus datos desde cualquier dispositivo
           </DialogDescription>
         </DialogHeader>
         
@@ -273,31 +315,52 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
               <div className="rounded-lg border p-4 text-center">
                 <CloudOff className="mx-auto h-10 w-10 text-muted-foreground" />
                 <p className="mt-2 text-sm text-muted-foreground">
-                  La sincronización no está activada.
+                  Sincronización desactivada
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Actívala para acceder desde otros dispositivos.
+                  Accede a tus datos desde cualquier dispositivo
                 </p>
               </div>
               
-              <Button onClick={() => setStep("setup")} className="w-full">
-                <Lock className="mr-2 h-4 w-4" />
-                Activar sincronización cifrada
+              <Button onClick={() => setStep("choose")} className="w-full">
+                <Cloud className="mr-2 h-4 w-4" />
+                Activar sincronización
               </Button>
             </>
           )}
           
-          {/* Setup View */}
-          {step === "setup" && (
+          {/* Choose View - New or Existing */}
+          {step === "choose" && (
             <>
-              <div className="rounded-lg bg-muted/50 p-3 text-sm">
-                <p className="font-medium">🔐 Cifrado de extremo a extremo</p>
-                <p className="mt-1 text-muted-foreground">
-                  Tus datos se cifran antes de salir de tu dispositivo.
-                  Ni el servidor ni nadie más puede leerlos.
-                </p>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => setStep("setup")} 
+                  variant="outline" 
+                  className="w-full h-auto flex-col gap-1 py-4"
+                >
+                  <span className="font-medium">¿Primera vez aquí?</span>
+                  <span className="text-xs text-muted-foreground">Crear una cuenta nueva</span>
+                </Button>
+                
+                <Button 
+                  onClick={() => setStep("login")} 
+                  variant="outline" 
+                  className="w-full h-auto flex-col gap-1 py-4"
+                >
+                  <span className="font-medium">Ya tengo cuenta</span>
+                  <span className="text-xs text-muted-foreground">Conectar desde otro dispositivo</span>
+                </Button>
               </div>
               
+              <Button variant="ghost" onClick={() => setStep("status")} className="w-full">
+                Cancelar
+              </Button>
+            </>
+          )}
+          
+          {/* Setup View - Nueva cuenta */}
+          {step === "setup" && (
+            <>
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium">Email</label>
@@ -307,13 +370,10 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Se usa como identificador (hasheado)
-                  </p>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium">Contraseña de cifrado</label>
+                  <label className="text-sm font-medium">Contraseña</label>
                   <div className="relative">
                     <Input
                       type={showPassword ? "text" : "password"}
@@ -346,18 +406,62 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
                 <div className="flex gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-800 dark:text-amber-200">
-                    <strong>¡Recuerda esta contraseña!</strong> Si la olvidas, 
-                    no podrás recuperar tus datos sincronizados.
+                    <strong>Guarda esta contraseña.</strong> Sin ella no podrás acceder a tus datos.
                   </p>
                 </div>
               </div>
               
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep("status")}>
-                  Cancelar
+                <Button variant="outline" onClick={() => setStep("choose")}>
+                  Atrás
                 </Button>
                 <Button onClick={handleSetup} disabled={isLoading} className="flex-1">
-                  {isLoading ? "Configurando..." : "Activar"}
+                  {isLoading ? "Creando..." : "Crear cuenta"}
+                </Button>
+              </div>
+            </>
+          )}
+          
+          {/* Login View - Cuenta existente */}
+          {step === "login" && (
+            <>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Contraseña</label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Tu contraseña"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep("choose")}>
+                  Atrás
+                </Button>
+                <Button onClick={handleLogin} disabled={isLoading} className="flex-1">
+                  {isLoading ? "Conectando..." : "Conectar"}
                 </Button>
               </div>
             </>
