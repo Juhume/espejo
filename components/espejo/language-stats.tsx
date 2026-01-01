@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WordCloud } from "./word-cloud"
 import { analyzePeriod, type PeriodAnalysis } from "@/lib/text-analysis"
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, format, subWeeks, subMonths } from "date-fns"
@@ -85,13 +84,32 @@ export function LanguageStats({ entries }: LanguageStatsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Period selector */}
-      <Tabs value={period} onValueChange={(v) => setPeriod(v as "week" | "month")}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="week">Esta semana</TabsTrigger>
-          <TabsTrigger value="month">Este mes</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Period selector - moved to top as buttons */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground">Análisis de lenguaje</h3>
+        <div className="flex gap-1 rounded-lg border bg-background p-1">
+          <button
+            onClick={() => setPeriod("week")}
+            className={`rounded px-3 py-1 text-sm transition-colors ${
+              period === "week"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Semana
+          </button>
+          <button
+            onClick={() => setPeriod("month")}
+            className={`rounded px-3 py-1 text-sm transition-colors ${
+              period === "month"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Mes
+          </button>
+        </div>
+      </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-4">

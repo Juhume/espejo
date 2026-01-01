@@ -77,27 +77,30 @@ export default function PatternsPage() {
 
       {/* Content */}
       <Tabs defaultValue="continuity" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="continuity" className="gap-1.5 text-xs sm:text-sm">
+        <TabsList className="grid w-full grid-cols-4 gap-1">
+          <TabsTrigger value="continuity" className="gap-1 text-xs sm:gap-1.5 sm:text-sm">
             <Flame className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Racha</span>
           </TabsTrigger>
-          <TabsTrigger value="language" className="gap-1.5 text-xs sm:text-sm">
+          <TabsTrigger value="language" className="gap-1 text-xs sm:gap-1.5 sm:text-sm">
             <MessageSquare className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Lenguaje</span>
           </TabsTrigger>
-          <TabsTrigger value="habits" className="gap-1.5 text-xs sm:text-sm">
+          <TabsTrigger value="habits" className="gap-1 text-xs sm:gap-1.5 sm:text-sm">
             <BookOpen className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Hábitos</span>
           </TabsTrigger>
-          <TabsTrigger value="crosses" className="gap-1.5 text-xs sm:text-sm">
+          <TabsTrigger value="crosses" className="gap-1 text-xs sm:gap-1.5 sm:text-sm">
             <BarChart3 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Cruces</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="continuity" className="space-y-4">
-          <ContinuityHeatmap entries={entries} />
+          <div>
+            <h3 className="mb-3 text-sm font-medium text-muted-foreground">Tu año</h3>
+            <ContinuityHeatmap entries={entries} />
+          </div>
           <div className="rounded-lg bg-muted/30 p-4 text-center">
             <p className="text-sm text-muted-foreground">
               {entries.length >= 7 
@@ -113,9 +116,15 @@ export default function PatternsPage() {
         </TabsContent>
 
         <TabsContent value="habits" className="space-y-6">
-          <div className="grid gap-6">
-            <HabitsHeatmap entries={entries} habit="exercise" />
-            <HabitsHeatmap entries={entries} habit="reading" />
+          <div className="space-y-6">
+            <div>
+              <h3 className="mb-3 text-sm font-medium text-muted-foreground">Ejercicio</h3>
+              <HabitsHeatmap entries={entries} habit="exercise" />
+            </div>
+            <div>
+              <h3 className="mb-3 text-sm font-medium text-muted-foreground">Lectura</h3>
+              <HabitsHeatmap entries={entries} habit="reading" />
+            </div>
           </div>
         </TabsContent>
 

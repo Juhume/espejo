@@ -85,8 +85,6 @@ export function HabitsHeatmap({ entries, habit, year = new Date().getFullYear() 
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium">{HABIT_LABELS[habit]}</h4>
-
       <div className="flex gap-[2px]">
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="flex flex-1 flex-col gap-[2px]">
