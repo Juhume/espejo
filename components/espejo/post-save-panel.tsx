@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Check, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, PenLine } from "lucide-react"
 import type { Entry } from "@/lib/db"
 
 interface PostSavePanelProps {
@@ -11,6 +11,7 @@ interface PostSavePanelProps {
   moodOptions: string[]
   onUpdate: (updates: Partial<Entry>) => void
   onClose: () => void
+  onContinueEditing: () => void
 }
 
 // Emojis más intuitivos para emociones
@@ -25,7 +26,7 @@ const MOOD_EMOJIS: Record<string, string> = {
   foco: "🎯",
 }
 
-export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSavePanelProps) {
+export function PostSavePanel({ entry, moodOptions, onUpdate, onClose, onContinueEditing }: PostSavePanelProps) {
   const [selectedMoods, setSelectedMoods] = useState<string[]>(entry.moodTags || [])
   const [showHabits, setShowHabits] = useState(false)
   const [exercise, setExercise] = useState(entry.habits?.exercise?.done || false)
@@ -171,13 +172,19 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSav
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-3">
-        <Button variant="ghost" onClick={handleSkip} className="flex-1">
-          Omitir
-        </Button>
-        <Button onClick={handleDone} className="flex-1 gap-2">
-          <Check className="h-4 w-4" />
-          Listo
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Button variant="ghost" onClick={handleSkip} className="flex-1">
+            Omitir
+          </Button>
+          <Button onClick={handleDone} className="flex-1 gap-2">
+            <Check className="h-4 w-4" />
+            Listo
+          </Button>
+        </div>
+        <Button variant="outline" onClick={onContinueEditing} className="w-full gap-2">
+          <PenLine className="h-4 w-4" />
+          Seguir escribiendo
         </Button>
       </div>
     </div>

@@ -67,7 +67,7 @@ export default function EspejoApp() {
   }, [])
 
   const handleSaveEntry = useCallback(
-    async (content: string) => {
+    async (content: string, isAutoSave?: boolean) => {
       const saved = await createOrUpdateEntry(
         {
           content,
@@ -97,8 +97,10 @@ export default function EspejoApp() {
         })
       }
 
-      // Show post-save panel
-      setShowPostSave(true)
+      // Only show post-save panel on manual save, not autosave
+      if (!isAutoSave) {
+        setShowPostSave(true)
+      }
     },
     [currentEntry, editingDate],
   )
@@ -347,11 +349,15 @@ export default function EspejoApp() {
                   setShowPostSave(false)
                   setView("home")
                 }}
+                onContinueEditing={() => {
+                  setShowPostSave(false)
+                }}
               />
             ) : (
               <EntryEditor
                 initialContent={currentEntry?.content || ""}
                 onSave={handleSaveEntry}
+                onContinue={() => setShowPostSave(true)}
                 mode={editorMode}
                 onModeChange={setEditorMode}
               />
