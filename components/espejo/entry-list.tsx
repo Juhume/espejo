@@ -97,7 +97,7 @@ export function EntryList({ entries, onSelect, selectedId }: EntryListProps) {
                     {entry.highlights.oneLiner || getPreview(entry.content)}
                   </p>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
-                    <span>{entry.wordCount} palabras</span>
+                    <span>{entry.wordCount} {entry.wordCount === 1 ? "palabra" : "palabras"}</span>
                     {entry.habits.exercise?.done && <span>🏋️</span>}
                     {entry.habits.reading?.done && <span>📚</span>}
                   </div>

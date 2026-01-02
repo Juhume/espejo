@@ -9,7 +9,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Espejo - Diario privado con cifrado E2E",
+  title: "Espejo - Tu diario privado",
   description: "Tu diario personal con cifrado de extremo a extremo. Hábitos, patrones y analítica visual. Sincroniza entre dispositivos de forma segura.",
   manifest: "/manifest.json",
   icons: {

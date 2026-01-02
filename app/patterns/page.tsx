@@ -71,7 +71,10 @@ export default function PatternsPage() {
         </Link>
         <h1 className="text-2xl font-light tracking-tight">Patrones</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {entries.length} {entries.length === 1 ? "entrada" : "entradas"} · {entries.reduce((sum, e) => sum + e.wordCount, 0).toLocaleString()} palabras
+          {entries.length} {entries.length === 1 ? "entrada" : "entradas"} · {(() => {
+            const total = entries.reduce((sum, e) => sum + e.wordCount, 0)
+            return `${total.toLocaleString()} ${total === 1 ? "palabra" : "palabras"}`
+          })()}
         </p>
       </header>
 

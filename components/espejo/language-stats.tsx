@@ -263,7 +263,7 @@ export function LanguageStats({ entries }: LanguageStatsProps) {
                   />
                   <Tooltip
                     labelFormatter={(date) => format(new Date(date), "d 'de' MMMM", { locale: es })}
-                    formatter={(value: number) => [`${value} palabras`, ""]}
+                    formatter={(value: number) => [`${value} ${value === 1 ? "palabra" : "palabras"}`, ""]}
                     cursor={{ fill: "hsl(var(--muted))", opacity: 0.1 }}
                     contentStyle={{
                       backgroundColor: "hsl(var(--popover))",

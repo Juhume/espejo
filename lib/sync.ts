@@ -344,9 +344,8 @@ export async function syncEntry(entry: Entry): Promise<{ success: boolean; needs
     }
     
     if (data?.success) {
-      // Actualizar timestamp de última sincronización
-      config.lastSyncAt = Date.now()
-      saveSyncConfig(config)
+      // NO actualizar lastSyncAt aquí - solo el sync completo lo hace
+      // Así el sync completo puede verificar que todo está bien
       return { success: true }
     }
     

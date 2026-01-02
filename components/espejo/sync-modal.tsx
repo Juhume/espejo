@@ -101,18 +101,21 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
       
       if (result.success) {
         if (result.isNew) {
-          setSuccess("¡Cuenta creada!")
+          // Sincronizar inmediatamente
+          const syncResult = await sync(password)
+          const pushed = syncResult.pushed || 0
+          setSuccess(`¡Cuenta creada! ${pushed} ${pushed === 1 ? "entrada subida" : "entradas subidas"}`)
+          
+          // Actualizar estado DESPUÉS del sync
+          refreshStatus()
+          setLastSync(Date.now())
+          setStep("status")
+          onSyncComplete?.()
         } else {
           setError("Ya existe una cuenta con este email. Usa 'Ya tengo cuenta'.")
           setIsLoading(false)
           return
         }
-        refreshStatus()
-        setStep("status")
-        
-        // Sincronizar inmediatamente
-        await sync(password)
-        onSyncComplete?.()
       } else {
         setError(result.error || "Error al crear cuenta")
       }
@@ -142,12 +145,21 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
           setIsLoading(false)
           return
         }
-        setSuccess("¡Conectado!")
-        refreshStatus()
-        setStep("status")
         
         // Sincronizar inmediatamente
-        await sync(password)
+        const syncResult = await sync(password)
+        
+        if (syncResult.success) {
+          const pulled = syncResult.pulled || 0
+          setSuccess(`¡Conectado! ${pulled} ${pulled === 1 ? "entrada descargada" : "entradas descargadas"}`)
+        } else {
+          setSuccess("¡Conectado!")
+        }
+        
+        // Actualizar estado DESPUÉS del sync
+        refreshStatus()
+        setLastSync(Date.now())
+        setStep("status")
         onSyncComplete?.()
       } else {
         setError(result.error || "Email o contraseña incorrectos")
@@ -174,15 +186,25 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
       
       if (valid) {
         setSyncPassword(password)
-        setSuccess("Desbloqueado")
-        refreshStatus()
-        setStep("status")
         
-        // Sincronizar
-        const result = await sync(password)
-        if (result.success) {
+        // Sincronizar inmediatamente
+        const syncResult = await sync(password)
+        
+        if (syncResult.success) {
+          if (syncResult.pulled > 0 || syncResult.pushed > 0) {
+            setSuccess(`Desbloqueado: ${syncResult.pushed} subidos, ${syncResult.pulled} descargados`)
+          } else {
+            setSuccess("Desbloqueado, todo sincronizado ✓")
+          }
           onSyncComplete?.()
+        } else {
+          setSuccess("Desbloqueado")
         }
+        
+        // Actualizar estado DESPUÉS del sync
+        refreshStatus()
+        setLastSync(Date.now())
+        setStep("status")
       } else {
         setError("Contraseña incorrecta")
       }
@@ -196,12 +218,17 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
   const handleSync = async () => {
     setIsLoading(true)
     setError(null)
+    setSuccess(null)
     
     try {
       const result = await sync()
       
       if (result.success) {
-        setSuccess(`Sincronizado: ${result.pushed} subidos, ${result.pulled} descargados`)
+        if (result.pushed === 0 && result.pulled === 0) {
+          setSuccess("Sincronizado, sin cambios pendientes")
+        } else {
+          setSuccess(`Sincronizado: ${result.pushed} subidos, ${result.pulled} descargados`)
+        }
         setLastSync(Date.now())
         onSyncComplete?.()
       } else {
@@ -294,7 +321,7 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
                     </p>
                     {lastSync && (
                       <p className="text-sm text-green-600 dark:text-green-400">
-                        Última sync: {formatLastSync(lastSync)}
+                        Sync en este dispositivo: {formatLastSync(lastSync)}
                       </p>
                     )}
                   </div>

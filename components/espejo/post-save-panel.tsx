@@ -68,14 +68,10 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSav
 
   return (
     <div className="animate-in fade-in-0 slide-in-from-bottom-4 space-y-6 duration-300">
-      {/* Success message */}
+      {/* Quick feedback header */}
       <div className="text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
-          <Check className="h-6 w-6 text-green-500" />
-        </div>
-        <h3 className="text-lg font-medium">¡Guardado!</h3>
         <p className="text-sm text-muted-foreground">
-          {entry.wordCount} palabras escritas hoy
+          {entry.wordCount} {entry.wordCount === 1 ? "palabra" : "palabras"} · ¿Algo más sobre hoy?
         </p>
       </div>
 
@@ -125,28 +121,30 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSav
         {showHabits && (
           <div className="space-y-4 px-3 pb-3">
             {/* Sleep rating */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <p className="text-xs text-muted-foreground">¿Cómo dormiste? 😴</p>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <button
-                    key={rating}
-                    onClick={() => setSleepRating(sleepRating === rating ? null : rating)}
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-all",
-                      sleepRating === rating
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/50 text-muted-foreground hover:bg-muted",
-                    )}
-                  >
-                    {rating}
-                  </button>
-                ))}
+              <div className="flex w-fit flex-col gap-1">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => setSleepRating(sleepRating === rating ? null : rating)}
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-all",
+                        sleepRating === rating
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      {rating}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between px-1 text-[10px] text-muted-foreground/60">
+                  <span>Mal</span>
+                  <span>Excelente</span>
+                </div>
               </div>
-              <p className="flex justify-between text-[10px] text-muted-foreground/60">
-                <span>Mal</span>
-                <span>Excelente</span>
-              </p>
             </div>
             
             {/* Quick habits */}
@@ -175,11 +173,11 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSav
       {/* Action buttons */}
       <div className="flex gap-3">
         <Button variant="ghost" onClick={handleSkip} className="flex-1">
-          Saltar
+          Omitir
         </Button>
         <Button onClick={handleDone} className="flex-1 gap-2">
           <Check className="h-4 w-4" />
-          Guardar
+          Listo
         </Button>
       </div>
     </div>

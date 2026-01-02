@@ -11,12 +11,14 @@ import { DemoBanner } from "@/components/espejo/demo-banner"
 import { SyncModal } from "@/components/espejo/sync-modal"
 import { Logo } from "@/components/espejo/logo"
 import { Button } from "@/components/ui/button"
-import { PenLine, List, ArrowLeft, BarChart3, CalendarCheck } from "lucide-react"
+import { PenLine, List, ArrowLeft, BarChart3, CalendarCheck, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { initializeSettings, getTodayDate, type Entry, type Settings } from "@/lib/db"
-import { getAllEntries, createOrUpdateEntry, getEntryByDate } from "@/lib/entries"
+import { getAllEntries, createOrUpdateEntry, getEntryByDate, deleteEntry } from "@/lib/entries"
 import { syncEntry, isSyncEnabled, getSyncPassword } from "@/lib/sync"
 import { toast } from "sonner"
+import { format, parseISO } from "date-fns"
+import { es } from "date-fns/locale"
 
 type View = "home" | "editor" | "list"
 type EditorMode = "free" | "guided" | "bad-day"
@@ -25,6 +27,7 @@ export default function EspejoApp() {
   const [view, setView] = useState<View>("home")
   const [entries, setEntries] = useState<Entry[]>([])
   const [currentEntry, setCurrentEntry] = useState<Entry | null>(null)
+  const [editingDate, setEditingDate] = useState<string | null>(null) // Fecha de la entrada que estamos editando
   const [settings, setSettings] = useState<Settings | null>(null)
   const [editorMode, setEditorMode] = useState<EditorMode>("free")
   const [showPostSave, setShowPostSave] = useState(false)
@@ -58,80 +61,85 @@ export default function EspejoApp() {
   const handleStartWriting = useCallback(async () => {
     const todayEntry = await getEntryByDate(getTodayDate())
     setCurrentEntry(todayEntry || null)
+    setEditingDate(getTodayDate())
     setView("editor")
     setShowPostSave(false)
   }, [])
 
   const handleSaveEntry = useCallback(
     async (content: string) => {
-      const saved = await createOrUpdateEntry({
-        content,
-        moodTags: currentEntry?.moodTags || [],
-        habits: currentEntry?.habits || {},
-        highlights: currentEntry?.highlights || {},
-      })
+      const saved = await createOrUpdateEntry(
+        {
+          content,
+          moodTags: currentEntry?.moodTags || [],
+          habits: currentEntry?.habits || {},
+          highlights: currentEntry?.highlights || {},
+        },
+        editingDate || undefined
+      )
       setCurrentEntry(saved)
 
       // Refresh entries list
       const updated = await getAllEntries()
       setEntries(updated)
 
-      // Sync if enabled
+      // Sync if enabled - only show toast on error/warning
       if (isSyncEnabled() && getSyncPassword()) {
         syncEntry(saved).then((result) => {
-          if (result.success) {
-            toast.success("Guardado y sincronizado ☁️", { duration: 2000 })
-          } else if (result.needsUnlock) {
+          if (result.needsUnlock) {
             toast.warning("Sesión expirada. Abre sync para reconectar.", { duration: 4000 })
+          } else if (!result.success) {
+            toast.error(`Error sync: ${result.error}`, { duration: 4000 })
           }
-          // Si falla por otra razón, silencioso - se reintentará
-        }).catch(() => {
-          // Silent fail - sync will retry next time
+          // No toast on success - the UI already shows "Guardado"
+        }).catch((err) => {
+          toast.error(`Error: ${err.message}`, { duration: 4000 })
         })
       }
 
       // Show post-save panel
       setShowPostSave(true)
     },
-    [currentEntry],
+    [currentEntry, editingDate],
   )
 
   const handleUpdateEntry = useCallback(
     async (updates: Partial<Entry>) => {
       if (!currentEntry) return
-      const saved = await createOrUpdateEntry({
-        ...currentEntry,
-        ...updates,
-        content: currentEntry.content,
-      })
+      const saved = await createOrUpdateEntry(
+        {
+          ...currentEntry,
+          ...updates,
+          content: currentEntry.content,
+        },
+        editingDate || undefined
+      )
       setCurrentEntry(saved)
 
       // Refresh entries list
       const updatedEntries = await getAllEntries()
       setEntries(updatedEntries)
       
-      // Sync if enabled
+      // Sync if enabled - only show toast on error/warning
       if (isSyncEnabled() && getSyncPassword()) {
         syncEntry(saved).then((result) => {
-          if (result.success) {
-            toast.success("Actualizado y sincronizado ☁️", { duration: 2000 })
-          } else if (result.needsUnlock) {
+          if (result.needsUnlock) {
             toast.warning("Sesión expirada. Abre sync para reconectar.", { duration: 4000 })
-          } else {
-            toast.success("Actualizado (pendiente de sync)", { duration: 2000 })
+          } else if (!result.success) {
+            toast.error(`Error sync: ${result.error}`, { duration: 4000 })
           }
+          // No toast on success - avoid notification overload
         }).catch(() => {
-          toast.success("Actualizado (pendiente de sync)", { duration: 2000 })
+          // Silent fail for metadata updates
         })
-      } else {
-        toast.success("Actualizado", { duration: 2000 })
       }
     },
-    [currentEntry],
+    [currentEntry, editingDate],
   )
 
   const handleSelectEntry = useCallback((entry: Entry) => {
     setCurrentEntry(entry)
+    setEditingDate(entry.date)
     setView("editor")
     setShowPostSave(false)
   }, [])
@@ -140,15 +148,39 @@ export default function EspejoApp() {
     async (date: string) => {
       const entry = await getEntryByDate(date)
       if (entry) {
+        // Editar entrada existente
         setCurrentEntry(entry)
+        setEditingDate(entry.date)
         setView("editor")
         setShowPostSave(false)
-      } else if (date === getTodayDate()) {
-        handleStartWriting()
+      } else {
+        // Crear nueva entrada para este día (pasado o hoy)
+        setCurrentEntry(null)
+        setEditingDate(date)
+        setView("editor")
+        setShowPostSave(false)
       }
     },
-    [handleStartWriting],
+    [],
   )
+
+  const handleDeleteEntry = useCallback(async () => {
+    if (!currentEntry) return
+    
+    const confirmDelete = confirm("¿Eliminar esta entrada? Esta acción no se puede deshacer.")
+    if (!confirmDelete) return
+    
+    await deleteEntry(currentEntry.id)
+    
+    // Refresh entries list
+    const updated = await getAllEntries()
+    setEntries(updated)
+    
+    toast.success("Entrada eliminada", { duration: 2000 })
+    setView("home")
+    setCurrentEntry(null)
+    setEditingDate(null)
+  }, [currentEntry])
 
   // Calculate streak
   const currentStreak = entries.reduce((streak, entry, index) => {
@@ -286,6 +318,26 @@ export default function EspejoApp() {
         {/* Editor View */}
         {view === "editor" && (
           <main className="flex flex-1 flex-col">
+            {/* Date indicator and delete button */}
+            {editingDate && (
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {editingDate === getTodayDate() 
+                    ? "Hoy" 
+                    : format(parseISO(editingDate), "EEEE d 'de' MMMM", { locale: es })}
+                </p>
+                {currentEntry && (
+                  <button
+                    onClick={handleDeleteEntry}
+                    className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            )}
+            
             {showPostSave && currentEntry && settings ? (
               <PostSavePanel
                 entry={currentEntry}

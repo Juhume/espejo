@@ -8,9 +8,12 @@ export async function getTodayEntry(): Promise<Entry | undefined> {
   return getEntryByDate(getTodayDate())
 }
 
-export async function createOrUpdateEntry(data: Partial<Entry> & { content: string }): Promise<Entry> {
-  const today = getTodayDate()
-  const existing = await getEntryByDate(today)
+export async function createOrUpdateEntry(
+  data: Partial<Entry> & { content: string },
+  forDate?: string
+): Promise<Entry> {
+  const date = forDate || getTodayDate()
+  const existing = await getEntryByDate(date)
 
   const wordCount = data.content.trim().split(/\s+/).filter(Boolean).length
 
@@ -27,7 +30,7 @@ export async function createOrUpdateEntry(data: Partial<Entry> & { content: stri
 
   const newEntry: Entry = {
     id: generateId(),
-    date: today,
+    date: date,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     content: data.content,
