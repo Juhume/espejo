@@ -234,27 +234,40 @@ export function SyncModal({ onSyncComplete }: SyncModalProps) {
     return `Hace ${days} días`
   }
 
+  // Estado del indicador
+  const getSyncStatus = () => {
+    if (!syncEnabled) return { color: "text-muted-foreground", label: "No configurado", icon: "off" }
+    if (needsUnlock) return { color: "text-amber-500", label: "Sesión expirada", icon: "locked" }
+    return { color: "text-green-500", label: lastSync ? `Sync: ${formatLastSync(lastSync)}` : "Conectado", icon: "on" }
+  }
+
+  const status = getSyncStatus()
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <button 
           className={cn(
-            "relative",
-            syncEnabled && "text-green-500"
+            "flex items-center gap-1.5 rounded-full px-2 py-1 text-xs transition-colors hover:bg-accent",
+            status.color
           )}
-          title={syncEnabled ? "Sincronización activa" : "Sincronización"}
+          title={status.label}
         >
-          {syncEnabled ? (
-            <Cloud className="h-5 w-5" />
+          {status.icon === "off" ? (
+            <CloudOff className="h-4 w-4" />
+          ) : status.icon === "locked" ? (
+            <>
+              <Cloud className="h-4 w-4" />
+              <Lock className="h-3 w-3" />
+            </>
           ) : (
-            <CloudOff className="h-5 w-5" />
+            <Cloud className="h-4 w-4" />
           )}
+          <span className="hidden sm:inline">{syncEnabled ? (needsUnlock ? "Bloqueado" : "Sync") : ""}</span>
           {needsUnlock && (
-            <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-500" />
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
           )}
-        </Button>
+        </button>
       </DialogTrigger>
       
       <DialogContent className="sm:max-w-md">
