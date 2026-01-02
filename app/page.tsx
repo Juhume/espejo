@@ -78,10 +78,13 @@ export default function EspejoApp() {
 
       // Sync if enabled
       if (isSyncEnabled() && getSyncPassword()) {
-        syncEntry(saved).then((synced: boolean) => {
-          if (synced) {
+        syncEntry(saved).then((result) => {
+          if (result.success) {
             toast.success("Guardado y sincronizado ☁️", { duration: 2000 })
+          } else if (result.needsUnlock) {
+            toast.warning("Sesión expirada. Abre sync para reconectar.", { duration: 4000 })
           }
+          // Si falla por otra razón, silencioso - se reintentará
         }).catch(() => {
           // Silent fail - sync will retry next time
         })
@@ -109,10 +112,20 @@ export default function EspejoApp() {
       
       // Sync if enabled
       if (isSyncEnabled() && getSyncPassword()) {
-        syncEntry(saved).catch(() => {})
+        syncEntry(saved).then((result) => {
+          if (result.success) {
+            toast.success("Actualizado y sincronizado ☁️", { duration: 2000 })
+          } else if (result.needsUnlock) {
+            toast.warning("Sesión expirada. Abre sync para reconectar.", { duration: 4000 })
+          } else {
+            toast.success("Actualizado (pendiente de sync)", { duration: 2000 })
+          }
+        }).catch(() => {
+          toast.success("Actualizado (pendiente de sync)", { duration: 2000 })
+        })
+      } else {
+        toast.success("Actualizado", { duration: 2000 })
       }
-      
-      toast.success("Actualizado", { duration: 2000 })
     },
     [currentEntry],
   )

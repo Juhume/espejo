@@ -311,13 +311,24 @@ export async function sync(password?: string): Promise<SyncResult> {
 
 /**
  * Sync rápido de una sola entrada
+ * Devuelve un objeto con más información sobre el resultado
  */
-export async function syncEntry(entry: Entry): Promise<boolean> {
+export async function syncEntry(entry: Entry): Promise<{ success: boolean; needsUnlock?: boolean; error?: string }> {
   const config = getSyncConfig()
   const password = getSyncPassword()
   const supabase = getSupabase()
   
-  if (!config?.enabled || !password || !supabase) return false
+  if (!config?.enabled) {
+    return { success: false, error: "Sync no habilitado" }
+  }
+  
+  if (!password) {
+    return { success: false, needsUnlock: true, error: "Sesión expirada" }
+  }
+  
+  if (!supabase) {
+    return { success: false, error: "Supabase no disponible" }
+  }
   
   try {
     const encrypted = await encryptEntryForSync(entry, password)
@@ -328,11 +339,20 @@ export async function syncEntry(entry: Entry): Promise<boolean> {
       p_entry: encrypted,
     }) as { data: RpcSingleEntryResponse | null, error: Error | null }
     
-    if (error) return false
+    if (error) {
+      return { success: false, error: error.message }
+    }
     
-    return data?.success ?? false
-  } catch {
-    return false
+    if (data?.success) {
+      // Actualizar timestamp de última sincronización
+      config.lastSyncAt = Date.now()
+      saveSyncConfig(config)
+      return { success: true }
+    }
+    
+    return { success: false, error: data?.error || "Error desconocido" }
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Error de red" }
   }
 }
 

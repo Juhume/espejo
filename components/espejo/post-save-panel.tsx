@@ -31,6 +31,7 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSav
   const [exercise, setExercise] = useState(entry.habits?.exercise?.done || false)
   const [reading, setReading] = useState(entry.habits?.reading?.done || false)
   const [social, setSocial] = useState(entry.habits?.social?.done || false)
+  const [sleepRating, setSleepRating] = useState<number | null>(entry.habits?.sleep?.rating ?? null)
 
   const toggleMood = (mood: string) => {
     if (selectedMoods.includes(mood)) {
@@ -48,6 +49,7 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSav
         exercise: { ...entry.habits?.exercise, done: exercise },
         reading: { ...entry.habits?.reading, done: reading },
         social: { done: social },
+        sleep: sleepRating !== null ? { ...entry.habits?.sleep, rating: sleepRating } : entry.habits?.sleep,
       },
     })
     onClose()
@@ -121,23 +123,51 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose }: PostSav
         </button>
         
         {showHabits && (
-          <div className="flex flex-wrap gap-2 px-3 pb-3">
-            {quickHabits.map(({ key, label, emoji, checked, toggle }) => (
-              <button
-                key={key}
-                onClick={toggle}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all",
-                  checked
-                    ? "bg-primary/20 text-primary"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted",
-                )}
-              >
-                <span>{emoji}</span>
-                <span>{label}</span>
-                {checked && <Check className="h-3 w-3" />}
-              </button>
-            ))}
+          <div className="space-y-4 px-3 pb-3">
+            {/* Sleep rating */}
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">¿Cómo dormiste? 😴</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    onClick={() => setSleepRating(sleepRating === rating ? null : rating)}
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-lg text-sm font-medium transition-all",
+                      sleepRating === rating
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {rating}
+                  </button>
+                ))}
+              </div>
+              <p className="flex justify-between text-[10px] text-muted-foreground/60">
+                <span>Mal</span>
+                <span>Excelente</span>
+              </p>
+            </div>
+            
+            {/* Quick habits */}
+            <div className="flex flex-wrap gap-2">
+              {quickHabits.map(({ key, label, emoji, checked, toggle }) => (
+                <button
+                  key={key}
+                  onClick={toggle}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-all",
+                    checked
+                      ? "bg-primary/20 text-primary"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  <span>{emoji}</span>
+                  <span>{label}</span>
+                  {checked && <Check className="h-3 w-3" />}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
