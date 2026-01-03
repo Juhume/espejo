@@ -173,6 +173,11 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose, onContinu
 
       {/* Action buttons */}
       <div className="flex flex-col gap-2">
+        {/* Botón de editar más visible arriba */}
+        <Button variant="outline" onClick={onContinueEditing} className="w-full gap-2">
+          <PenLine className="h-4 w-4" />
+          Seguir escribiendo
+        </Button>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={handleSkip} className="flex-1">
             Omitir
@@ -182,10 +187,6 @@ export function PostSavePanel({ entry, moodOptions, onUpdate, onClose, onContinu
             Listo
           </Button>
         </div>
-        <Button variant="outline" onClick={onContinueEditing} className="w-full gap-2">
-          <PenLine className="h-4 w-4" />
-          Seguir escribiendo
-        </Button>
       </div>
     </div>
   )
