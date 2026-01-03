@@ -1,11 +1,24 @@
 /**
  * Cifrado E2E con AES-256-GCM y PBKDF2
+ * 
+ * Seguridad:
+ *   - AES-256-GCM para confidencialidad + integridad
+ *   - PBKDF2 con 310,000 iteraciones (OWASP 2023 recommendation)
+ *   - IV aleatorio de 12 bytes por cifrado
+ *   - Salt aleatorio de 16 bytes por derivación
+ *   - Payload versionado para futuras migraciones
  */
 
-const PBKDF2_ITERATIONS = 100000
+// OWASP 2023 recomienda 310,000 para PBKDF2-SHA256
+// Ref: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+const PBKDF2_ITERATIONS_V2 = 310000
+const PBKDF2_ITERATIONS_V1 = 100000  // Legacy, para descifrar datos antiguos
 const SALT_LENGTH = 16
 const IV_LENGTH = 12
 const KEY_LENGTH = 256
+
+// Versión actual del payload cifrado
+const CURRENT_CRYPTO_VERSION = 2
 
 export interface EncryptedPayload {
   ciphertext: string  // Base64
@@ -21,13 +34,18 @@ export interface CryptoKeys {
 
 /**
  * Deriva una clave AES-GCM desde una contraseña usando PBKDF2
+ * @param version - Versión del payload (para usar iteraciones correctas)
  */
 export async function deriveKey(
   password: string, 
-  salt?: Uint8Array
+  salt?: Uint8Array,
+  version: number = CURRENT_CRYPTO_VERSION
 ): Promise<CryptoKeys> {
   // Generar salt si no se proporciona
   const useSalt = salt || crypto.getRandomValues(new Uint8Array(SALT_LENGTH))
+  
+  // Usar iteraciones según versión (para compatibilidad con datos antiguos)
+  const iterations = version >= 2 ? PBKDF2_ITERATIONS_V2 : PBKDF2_ITERATIONS_V1
   
   // Importar contraseña como clave base
   const passwordKey = await crypto.subtle.importKey(
@@ -39,11 +57,12 @@ export async function deriveKey(
   )
   
   // Derivar clave AES-GCM
+  // Nota: creamos un nuevo Uint8Array para garantizar compatibilidad browser/Node
   const encryptionKey = await crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: useSalt.buffer as ArrayBuffer,
-      iterations: PBKDF2_ITERATIONS,
+      salt: new Uint8Array(useSalt),
+      iterations,
       hash: "SHA-256",
     },
     passwordKey,
@@ -57,12 +76,13 @@ export async function deriveKey(
 
 /**
  * Cifra datos con AES-256-GCM
+ * Usa la versión actual de crypto (310k iteraciones PBKDF2)
  */
 export async function encrypt(
   data: string, 
   password: string
 ): Promise<EncryptedPayload> {
-  const { encryptionKey, salt } = await deriveKey(password)
+  const { encryptionKey, salt } = await deriveKey(password, undefined, CURRENT_CRYPTO_VERSION)
   
   // Generar IV aleatorio
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH))
@@ -77,30 +97,33 @@ export async function encrypt(
   
   return {
     ciphertext: arrayBufferToBase64(ciphertext),
-    iv: arrayBufferToBase64(iv.buffer as ArrayBuffer),
-    salt: arrayBufferToBase64(salt.buffer as ArrayBuffer),
-    version: 1,
+    iv: uint8ArrayToBase64(iv),
+    salt: uint8ArrayToBase64(salt),
+    version: CURRENT_CRYPTO_VERSION,
   }
 }
 
 /**
  * Descifra datos con AES-256-GCM
+ * Soporta v1 (100k iter) y v2 (310k iter) automáticamente
  */
 export async function decrypt(
   payload: EncryptedPayload, 
   password: string
 ): Promise<string> {
-  const salt = base64ToArrayBuffer(payload.salt)
-  const { encryptionKey } = await deriveKey(password, new Uint8Array(salt))
+  const salt = base64ToUint8Array(payload.salt)
+  // Usar la versión del payload para derivar con las iteraciones correctas
+  const payloadVersion = payload.version || 1
+  const { encryptionKey } = await deriveKey(password, salt, payloadVersion)
   
-  const iv = base64ToArrayBuffer(payload.iv)
-  const ciphertext = base64ToArrayBuffer(payload.ciphertext)
+  const iv = base64ToUint8Array(payload.iv)
+  const ciphertext = base64ToUint8Array(payload.ciphertext)
   
   try {
     const decrypted = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: new Uint8Array(iv) },
+      { name: "AES-GCM", iv: iv as BufferSource },
       encryptionKey,
-      ciphertext
+      ciphertext as BufferSource
     )
     
     return new TextDecoder().decode(decrypted)
@@ -134,6 +157,10 @@ export function getDeviceId(): string {
 
 // ===== HELPERS =====
 
+/**
+ * Convierte ArrayBuffer a Base64
+ * Compatible con browser y Node.js
+ */
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   let binary = ""
@@ -143,13 +170,34 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
+/**
+ * Convierte Uint8Array a Base64
+ * Garantiza que no hay offsets problemáticos
+ */
+function uint8ArrayToBase64(arr: Uint8Array): string {
+  let binary = ""
+  for (let i = 0; i < arr.length; i++) {
+    binary += String.fromCharCode(arr[i])
+  }
+  return btoa(binary)
+}
+
+/**
+ * Convierte Base64 a Uint8Array
+ * Compatible con browser y Node.js
+ */
+function base64ToUint8Array(base64: string): Uint8Array {
   const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i)
   }
-  return bytes.buffer
+  return bytes
+}
+
+// Reservada para uso futuro - conversión directa a ArrayBuffer
+function _base64ToArrayBuffer(base64: string): ArrayBuffer {
+  return base64ToUint8Array(base64).buffer as ArrayBuffer
 }
 
 // ===== CIFRADO BATCH =====

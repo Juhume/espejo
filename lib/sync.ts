@@ -16,6 +16,7 @@ export interface SyncConfig {
   enabled: boolean
   userHash: string            // Hash del email
   passwordHash: string        // Para verificar contraseña localmente
+  verificationToken: string   // Token para autenticar con Supabase RPC
   lastSyncAt: number
   deviceId: string
 }
@@ -148,6 +149,8 @@ export async function setupSync(
         success: false, 
         error: data?.error === "INVALID_CREDENTIALS" 
           ? "Email o contraseña incorrectos" 
+          : data?.error === "ACCOUNT_LOCKED"
+          ? "Cuenta bloqueada temporalmente. Intenta en 15 minutos."
           : "Error de autenticación"
       }
     }
@@ -156,6 +159,7 @@ export async function setupSync(
       enabled: true,
       userHash,
       passwordHash,
+      verificationToken,
       lastSyncAt: 0,
       deviceId: getDeviceId(),
     }
@@ -220,6 +224,7 @@ export async function sync(password?: string): Promise<SyncResult> {
     // @ts-expect-error RPC dinámico
     const { data: entriesResult, error: entriesError } = await supabase.rpc("sync_entries", {
       p_user_hash: config.userHash,
+      p_verification_token: config.verificationToken,
       p_entries: encryptedEntries,
       p_last_sync_at: Math.floor(config.lastSyncAt),
     }) as { data: RpcSyncEntriesResponse | null, error: Error | null }
@@ -267,6 +272,7 @@ export async function sync(password?: string): Promise<SyncResult> {
     // @ts-expect-error RPC dinámico
     const { data: reviewsResult, error: reviewsError } = await supabase.rpc("sync_reviews", {
       p_user_hash: config.userHash,
+      p_verification_token: config.verificationToken,
       p_reviews: encryptedReviews,
       p_last_sync_at: Math.floor(config.lastSyncAt),
     }) as { data: RpcSyncReviewsResponse | null, error: Error | null }
@@ -336,6 +342,7 @@ export async function syncEntry(entry: Entry): Promise<{ success: boolean; needs
     // @ts-expect-error RPC dinámico
     const { data, error } = await supabase.rpc("sync_single_entry", {
       p_user_hash: config.userHash,
+      p_verification_token: config.verificationToken,
       p_entry: encrypted,
     }) as { data: RpcSingleEntryResponse | null, error: Error | null }
     
